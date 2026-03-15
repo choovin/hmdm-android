@@ -1,0 +1,37 @@
+# Android APK 构建环境
+# 使用国内镜像加速
+
+FROM --platform=linux/amd64 docker.1ms.run/library/eclipse-temurin:17-jdk
+
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+# 使用清华镜像源加速 APT
+RUN sed -i 's|http://deb.debian.org/debian|https://mirrors.tuna.tsinghua.edu.cn/debian|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.debian.org/debian-security|https://mirrors.tuna.tsinghua.edu.cn/debian-security|g' /etc/apt/sources.list
+
+# 安装必要工具
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# 下载并安装 Android SDK Command Line Tools
+# 使用国内镜像或官方镜像
+RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
+    cd $ANDROID_HOME/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip && \
+    unzip -q cmdline-tools.zip && \
+    rm cmdline-tools.zip && \
+    mv cmdline-tools latest
+
+# 安装 Android SDK 组件
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+WORKDIR /workspace
+
+# 构建命令：
+# docker run --rm -v $(pwd):/workspace android-builder ./gradlew assembleRelease
