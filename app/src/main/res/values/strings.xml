@@ -145,11 +145,23 @@
     <!-- Confirm Dialog Strings -->
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
+    <string name="remote_lock_title">Remote Lock Confirmation</string>
+    <string name="remote_lock_message">Administrator is remotely locking this device</string>
     <string name="lock_info_title">Lock Information</string>
     <string name="lock_info_content">The device will be locked after the action is completed.</string>
+    <string name="factory_reset_title">Factory Reset Confirmation</string>
+    <string name="factory_reset_message">Administrator is resetting this device to factory settings</string>
     <string name="factory_reset_warning">Warning: Factory Reset</string>
     <string name="factory_reset_info">All data on the device will be erased. This action cannot be undone.</string>
     <string name="confirm_input_label">Type the text below to confirm:</string>
-    <string name="confirm_input_hint">Enter confirmation</string>
+    <string name="confirm_input_hint">confirm</string>
+    <string name="confirm_input_error">Please type the confirmation text</string>
     <string name="countdown_label">Time remaining:</string>
+    <string name="cancel_with_countdown">Cancel (%ds)</string>
+    <string name="confirm_lock">Confirm Lock</string>
+    <string name="confirm_factory_reset">Confirm Reset</string>
+    <string name="execute_now">Execute Now</string>
+    <string name="admin_not_active">Device admin not active, cannot execute operation</string>
+    <string name="device_locked_confirm">Device locked</string>
+    <string name="operation_failed">Operation failed: %s</string>
 </resources>

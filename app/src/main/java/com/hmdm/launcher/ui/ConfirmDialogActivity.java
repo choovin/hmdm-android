@@ -87,7 +87,7 @@ public class ConfirmDialogActivity extends AppCompatActivity {
         wipeExternal = getIntent().getBooleanExtra(EXTRA_WIPE_EXTERNAL, true);
 
         // Set default countdown if not provided
-        if (countdown <= 0) {
+        if (countdown <= 0 || action == null) {
             countdown = ACTION_FACTORY_RESET.equals(action) ? DEFAULT_COUNTDOWN_RESET : DEFAULT_COUNTDOWN_LOCK;
         }
 
@@ -124,6 +124,10 @@ public class ConfirmDialogActivity extends AppCompatActivity {
             factoryResetInfoContainer.setVisibility(View.VISIBLE);
             inputContainer.setVisibility(View.VISIBLE);
             confirmButton.setText(R.string.confirm_factory_reset);
+        } else {
+            // Unknown action, close the dialog
+            finish();
+            return;
         }
 
         // Display admin message if provided
@@ -169,10 +173,11 @@ public class ConfirmDialogActivity extends AppCompatActivity {
 
     private void onConfirmClick() {
         if (ACTION_FACTORY_RESET.equals(action)) {
-            // Factory reset requires typing "确认"
+            // Factory reset requires typing confirmation text
             String input = confirmInput.getText().toString();
-            if (!"确认".equals(input)) {
-                Toast.makeText(this, R.string.confirm_input_hint, Toast.LENGTH_SHORT).show();
+            String confirmText = getString(R.string.confirm_input_hint);
+            if (!confirmText.equals(input)) {
+                Toast.makeText(this, R.string.confirm_input_error, Toast.LENGTH_SHORT).show();
                 return;
             }
         }
@@ -205,7 +210,7 @@ public class ConfirmDialogActivity extends AppCompatActivity {
             if (ACTION_LOCK.equals(action)) {
                 dpm.lockNow();
                 RemoteLogger.log(this, Const.LOG_INFO, "Device locked by user confirmation");
-                Toast.makeText(this, R.string.device_locked, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.device_locked_confirm, Toast.LENGTH_SHORT).show();
             } else if (ACTION_FACTORY_RESET.equals(action)) {
                 int flags = wipeExternal ? DevicePolicyManager.WIPE_EXTERNAL_STORAGE : 0;
                 dpm.wipeData(flags);
