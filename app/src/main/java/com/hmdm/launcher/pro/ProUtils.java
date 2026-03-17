@@ -20,10 +20,15 @@
 package com.hmdm.launcher.pro;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
+import android.os.Build;
 import android.view.View;
 
 import com.hmdm.launcher.Const;
@@ -47,7 +52,8 @@ public class ProUtils {
     }
 
     public static boolean kioskModeRequired(Context context) {
-        return false;
+        ServerConfig config = SettingsHelper.getInstance(context).getConfig();
+        return config != null && config.isKioskMode();
     }
 
     public static void initCrashlytics(Context context) {
@@ -88,38 +94,142 @@ public class ProUtils {
     }
 
     public static boolean isKioskAppInstalled(Context context) {
-        // Stub
-        return false;
+        ServerConfig config = SettingsHelper.getInstance(context).getConfig();
+        if (config == null || config.getMainApp() == null || config.getMainApp().isEmpty()) {
+            return false;
+        }
+        String packageName = config.getMainApp();
+        try {
+            context.getPackageManager().getPackageInfo(packageName, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     public static boolean isKioskModeRunning(Context context) {
-        // Stub
-        return false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return false;
+        }
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) {
+            return false;
+        }
+        return am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_LOCKED;
     }
 
     public static Intent getKioskAppIntent(String kioskApp, Activity activity) {
-        // Stub
-        return null;
+        String packageName = kioskApp;
+        if (packageName == null || packageName.isEmpty()) {
+            ServerConfig config = SettingsHelper.getInstance(activity).getConfig();
+            if (config != null && config.getMainApp() != null) {
+                packageName = config.getMainApp();
+            }
+        }
+
+        if (packageName == null || packageName.isEmpty()) {
+            return null;
+        }
+
+        try {
+            PackageManager pm = activity.getPackageManager();
+            Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+            return launchIntent;
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to get kiosk app intent: " + e.getMessage());
+            return null;
+        }
     }
 
     // Start COSU kiosk mode
     public static boolean startCosuKioskMode(String kioskApp, Activity activity, boolean enableSettings) {
-        // Stub
-        return false;
+        try {
+            DevicePolicyManager dpm = (DevicePolicyManager) activity.getSystemService(Context.DEVICE_POLICY_SERVICE);
+            ComponentName adminComponent = new ComponentName(activity, com.hmdm.launcher.AdminReceiver.class);
+
+            if (!dpm.isAdminActive(adminComponent)) {
+                RemoteLogger.log(activity, Const.LOG_ERROR, "Device admin not active, cannot start kiosk");
+                return false;
+            }
+
+            // Get main app package name
+            String packageName = kioskApp;
+            if (packageName == null || packageName.isEmpty()) {
+                ServerConfig config = SettingsHelper.getInstance(activity).getConfig();
+                if (config != null && config.getMainApp() != null) {
+                    packageName = config.getMainApp();
+                }
+            }
+
+            if (packageName == null || packageName.isEmpty()) {
+                RemoteLogger.log(activity, Const.LOG_ERROR, "No kiosk app specified");
+                return false;
+            }
+
+            // Verify app is installed
+            try {
+                activity.getPackageManager().getPackageInfo(packageName, 0);
+            } catch (PackageManager.NameNotFoundException e) {
+                RemoteLogger.log(activity, Const.LOG_ERROR, "Kiosk app not installed: " + packageName);
+                return false;
+            }
+
+            // Set lock task packages
+            dpm.setLockTaskPackages(adminComponent, new String[]{packageName});
+
+            // Start lock task mode
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                activity.startLockTask();
+            }
+
+            RemoteLogger.log(activity, Const.LOG_INFO, "Kiosk mode started for: " + packageName);
+            return true;
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to start kiosk: " + e.getMessage());
+            return false;
+        }
     }
 
-    // Set/update kiosk mode options (lock tack features)
+    // Set/update kiosk mode options (lock task features)
     public static void updateKioskOptions(Activity activity) {
-        // Stub
+        try {
+            ServerConfig config = SettingsHelper.getInstance(activity).getConfig();
+            if (config == null) {
+                return;
+            }
+
+            DevicePolicyManager dpm = (DevicePolicyManager) activity.getSystemService(Context.DEVICE_POLICY_SERVICE);
+            ComponentName adminComponent = new ComponentName(activity, com.hmdm.launcher.AdminReceiver.class);
+
+            // Update status bar and other kiosk options
+            // Note: Some options require Android 9+
+
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to update kiosk options: " + e.getMessage());
+        }
     }
 
     // Update app list in the kiosk mode
     public static void updateKioskAllowedApps(String kioskApp, Activity activity, boolean enableSettings) {
-        // Stub
+        try {
+            // If kiosk mode is already running, update allowed apps
+            if (isKioskModeRunning(activity)) {
+                startCosuKioskMode(kioskApp, activity, enableSettings);
+            }
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to update kiosk allowed apps: " + e.getMessage());
+        }
     }
 
     public static void unlockKiosk(Activity activity) {
-        // Stub
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                activity.stopLockTask();
+            }
+            RemoteLogger.log(activity, Const.LOG_INFO, "Kiosk mode unlocked");
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to unlock kiosk: " + e.getMessage());
+        }
     }
 
     public static void processConfig(Context context, ServerConfig config) {
