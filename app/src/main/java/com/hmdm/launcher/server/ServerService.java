@@ -135,4 +135,11 @@ public interface ServerService {
     @GET("{project}/rest/plugins/devicecontrol/session/{number}")
     Call<ResponseBody> getControlSession(@Path("project") String project, @Path("number") String number);
 
+    // Network filter
+    @GET("{project}/rest/plugins/networkfilter/rules/{number}")
+    Call<ResponseBody> getNetworkRules(@Path("project") String project, @Path("number") String number);
+
+    @POST("{project}/rest/plugins/networkfilter/logs/{number}")
+    Call<ResponseBody> uploadTrafficLogs(@Path("project") String project, @Path("number") String number, @Body Object logs);
+
 }

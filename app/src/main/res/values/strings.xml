@@ -169,5 +169,11 @@
     <string name="remote_control_channel">Remote Control</string>
     <string name="remote_control_notification_title">Remote Control Active</string>
     <string name="remote_control_notification_text">This device is being remotely controlled</string>
+
+    <!-- Network Filter -->
+    <string name="network_filter_channel">Network Filter</string>
+    <string name="network_filter_notification_title">Network Filter Active</string>
+    <string name="network_filter_notification_text">Network traffic is being monitored</string>
+
     <string name="stop">Stop</string>
 </resources>
