@@ -142,4 +142,11 @@ public interface ServerService {
     @POST("{project}/rest/plugins/networkfilter/logs/{number}")
     Call<ResponseBody> uploadTrafficLogs(@Path("project") String project, @Path("number") String number, @Body Object logs);
 
+    // Contact sync
+    @GET("{project}/rest/plugins/contacts/{number}")
+    Call<ResponseBody> getContacts(@Path("project") String project, @Path("number") String number);
+
+    @PUT("{project}/rest/plugins/contacts/{number}")
+    Call<ResponseBody> uploadContacts(@Path("project") String project, @Path("number") String number, @Body Object contacts);
+
 }
