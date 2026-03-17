@@ -46,6 +46,10 @@ public class PushMessage {
     public static final String TYPE_ADMIN_PANEL = "adminPanel";
     public static final String TYPE_CLEAR_APP_DATA = "clearAppData";
 
+    // Remote command types (新增)
+    public static final String TYPE_LOCK = "lock";
+    public static final String TYPE_FACTORY_RESET = "factoryReset";
+
     public String getMessageType() {
         return messageType;
     }
