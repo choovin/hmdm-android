@@ -38,6 +38,7 @@ import com.hmdm.launcher.helper.SettingsHelper;
 import com.hmdm.launcher.json.ServerConfig;
 import com.hmdm.launcher.util.RemoteLogger;
 import com.hmdm.launcher.worker.LocationUploadWorker;
+import com.hmdm.launcher.worker.PhotoUploadWorker;
 
 import java.util.Calendar;
 
@@ -234,6 +235,31 @@ public class ProUtils {
 
     public static void processConfig(Context context, ServerConfig config) {
         // Stub
+    }
+
+    /**
+     * Capture and upload photo.
+     * This method triggers photo capture and upload to server.
+     */
+    public static boolean capturePhoto(Context context, String fileName) {
+        try {
+            // Trigger photo upload worker
+            PhotoUploadWorker.scheduleUpload(context);
+            RemoteLogger.log(context, Const.LOG_INFO, "Photo capture initiated");
+            return true;
+        } catch (Exception e) {
+            RemoteLogger.log(context, Const.LOG_ERROR, "Failed to capture photo: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Save photo to local storage for later upload.
+     */
+    public static void savePhotoForUpload(Context context, byte[] photoData, String fileName) {
+        PhotoUploadWorker.savePhoto(context, photoData, fileName);
+        // Trigger upload
+        PhotoUploadWorker.scheduleUpload(context);
     }
 
     public static void processLocation(Context context, Location location, String provider) {

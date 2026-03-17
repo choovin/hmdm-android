@@ -32,14 +32,18 @@ import com.hmdm.launcher.json.ServerConfigResponse;
 
 import java.util.List;
 
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
+import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Part;
 import retrofit2.http.Path;
 
 public interface ServerService {
@@ -116,5 +120,11 @@ public interface ServerService {
     @POST("{project}/rest/plugins/devicereset/public/password/{number}")
     @Headers("Content-Type: application/json")
     Call<ResponseBody> confirmPasswordReset(@Path("project") String project, @Path("number") String number, @Body DeviceInfo deviceInfo);
+
+    // Photo upload
+    @Multipart
+    @POST("{project}/rest/plugins/devicephoto/public/upload/{number}")
+    Call<ResponseBody> uploadPhoto(@Path("project") String project, @Path("number") String number,
+                                    @Part("photo") RequestBody photo, @Part("filename") RequestBody filename);
 
 }
