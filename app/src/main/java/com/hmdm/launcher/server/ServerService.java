@@ -21,6 +21,7 @@ package com.hmdm.launcher.server;
 
 
 import com.hmdm.launcher.db.LocationTable;
+import com.hmdm.launcher.json.ControlSignal;
 import com.hmdm.launcher.json.DetailedInfo;
 import com.hmdm.launcher.json.DetailedInfoConfigResponse;
 import com.hmdm.launcher.json.DeviceEnrollOptions;
@@ -29,6 +30,8 @@ import com.hmdm.launcher.json.PushResponse;
 import com.hmdm.launcher.json.RemoteLogConfigResponse;
 import com.hmdm.launcher.json.RemoteLogItem;
 import com.hmdm.launcher.json.ServerConfigResponse;
+import com.hmdm.launcher.json.ContactData;
+import com.hmdm.launcher.json.TrafficLogData;
 
 import java.util.List;
 
@@ -130,7 +133,7 @@ public interface ServerService {
     // Remote control - signaling
     @POST("{project}/rest/plugins/devicecontrol/signal/{number}")
     @Headers("Content-Type: application/json")
-    Call<ResponseBody> sendControlSignal(@Path("project") String project, @Path("number") String number, @Body Object signal);
+    Call<ResponseBody> sendControlSignal(@Path("project") String project, @Path("number") String number, @Body ControlSignal signal);
 
     @GET("{project}/rest/plugins/devicecontrol/session/{number}")
     Call<ResponseBody> getControlSession(@Path("project") String project, @Path("number") String number);
@@ -140,13 +143,13 @@ public interface ServerService {
     Call<ResponseBody> getNetworkRules(@Path("project") String project, @Path("number") String number);
 
     @POST("{project}/rest/plugins/networkfilter/logs/{number}")
-    Call<ResponseBody> uploadTrafficLogs(@Path("project") String project, @Path("number") String number, @Body Object logs);
+    Call<ResponseBody> uploadTrafficLogs(@Path("project") String project, @Path("number") String number, @Body TrafficLogData logs);
 
     // Contact sync
     @GET("{project}/rest/plugins/contacts/{number}")
     Call<ResponseBody> getContacts(@Path("project") String project, @Path("number") String number);
 
     @PUT("{project}/rest/plugins/contacts/{number}")
-    Call<ResponseBody> uploadContacts(@Path("project") String project, @Path("number") String number, @Body Object contacts);
+    Call<ResponseBody> uploadContacts(@Path("project") String project, @Path("number") String number, @Body ContactData contacts);
 
 }
