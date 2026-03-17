@@ -128,6 +128,41 @@ public class PushNotificationProcessor {
             // Clear application data
             AsyncTask.execute(() -> clearAppData(context, message.getPayloadJSON()));
             return;
+        } else if (message.getMessageType().equals(PushMessage.TYPE_LOCK)) {
+            RemoteLogger.log(context, Const.LOG_INFO, "Received remote lock command");
+            Intent intent = new Intent(context, com.hmdm.launcher.ui.ConfirmDialogActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Parse optional payload
+            String countdownStr = message.getPayloadJSON() != null ?
+                message.getPayloadJSON().optString("countdown", "30") : "30";
+            String adminMessage = message.getPayloadJSON() != null ?
+                message.getPayloadJSON().optString("message", "") : "";
+            intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_ACTION, com.hmdm.launcher.ui.ConfirmDialogActivity.ACTION_LOCK);
+            intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_COUNTDOWN, Integer.parseInt(countdownStr));
+            if (!adminMessage.isEmpty()) {
+                intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_MESSAGE, adminMessage);
+            }
+            context.startActivity(intent);
+            return;
+        } else if (message.getMessageType().equals(PushMessage.TYPE_FACTORY_RESET)) {
+            RemoteLogger.log(context, Const.LOG_INFO, "Received factory reset command");
+            Intent intent = new Intent(context, com.hmdm.launcher.ui.ConfirmDialogActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Parse optional payload
+            String countdownStr = message.getPayloadJSON() != null ?
+                message.getPayloadJSON().optString("countdown", "60") : "60";
+            String adminMessage = message.getPayloadJSON() != null ?
+                message.getPayloadJSON().optString("message", "") : "";
+            boolean wipeExternal = message.getPayloadJSON() != null ?
+                message.getPayloadJSON().optBoolean("wipeExternal", true) : true;
+            intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_ACTION, com.hmdm.launcher.ui.ConfirmDialogActivity.ACTION_FACTORY_RESET);
+            intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_COUNTDOWN, Integer.parseInt(countdownStr));
+            intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_WIPE_EXTERNAL, wipeExternal);
+            if (!adminMessage.isEmpty()) {
+                intent.putExtra(com.hmdm.launcher.ui.ConfirmDialogActivity.EXTRA_MESSAGE, adminMessage);
+            }
+            context.startActivity(intent);
+            return;
         }
 
         // Send broadcast to all plugins

@@ -181,8 +181,16 @@
 
         <activity
             android:name=".ui.ErrorDetailsActivity"
-            android:theme="@style/SetupWizardTheme" 
+            android:theme="@style/SetupWizardTheme"
             android:exported="false"/>
+
+        <activity
+            android:name=".ui.ConfirmDialogActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:theme="@style/SetupWizardTheme" />
 
         <receiver
             android:name="com.hmdm.launcher.AdminReceiver"
