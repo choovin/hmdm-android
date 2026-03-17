@@ -33,6 +33,7 @@ import android.view.View;
 
 import com.hmdm.launcher.Const;
 import com.hmdm.launcher.R;
+import com.hmdm.launcher.db.DatabaseHelper;
 import com.hmdm.launcher.db.LocationTable;
 import com.hmdm.launcher.helper.SettingsHelper;
 import com.hmdm.launcher.json.ServerConfig;
@@ -281,7 +282,8 @@ public class ProUtils {
 
         // Store to database
         try {
-            SQLiteDatabase db = context.openOrCreateDatabase("hmdm.db", Context.MODE_PRIVATE, null);
+            DatabaseHelper dbHelper = DatabaseHelper.instance(context);
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
             LocationTable.insert(db, locData);
             db.close();
         } catch (Exception e) {

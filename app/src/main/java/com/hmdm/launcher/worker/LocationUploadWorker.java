@@ -21,6 +21,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.hmdm.launcher.Const;
+import com.hmdm.launcher.db.DatabaseHelper;
 import com.hmdm.launcher.db.LocationTable;
 import com.hmdm.launcher.helper.SettingsHelper;
 import com.hmdm.launcher.json.ServerConfig;
@@ -68,7 +69,8 @@ public class LocationUploadWorker extends Worker {
             }
 
             // Read pending location data
-            android.database.sqlite.SQLiteDatabase db = context.openOrCreateDatabase("hmdm.db", Context.MODE_PRIVATE, null);
+            DatabaseHelper dbHelper = DatabaseHelper.instance(context);
+            android.database.sqlite.SQLiteDatabase db = dbHelper.getWritableDatabase();
             List<LocationTable.Location> locations = LocationTable.select(db, 100);
             db.close();
 
@@ -82,7 +84,7 @@ public class LocationUploadWorker extends Worker {
 
             if (response.isSuccessful()) {
                 // Upload successful, delete uploaded data
-                db = context.openOrCreateDatabase("hmdm.db", Context.MODE_PRIVATE, null);
+                db = dbHelper.getWritableDatabase();
                 LocationTable.delete(db, locations);
                 db.close();
                 RemoteLogger.log(context, Const.LOG_INFO, "Uploaded " + locations.size() + " locations");
