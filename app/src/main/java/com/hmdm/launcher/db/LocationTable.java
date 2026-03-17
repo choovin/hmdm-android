@@ -33,13 +33,18 @@ public class LocationTable {
                     "_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     "ts INTEGER, " +
                     "lat REAL, " +
-                    "lon REAL " +
+                    "lon REAL, " +
+                    "speed REAL, " +
+                    "altitude REAL, " +
+                    "accuracy REAL, " +
+                    "bearing REAL, " +
+                    "provider TEXT" +
                     ")";
     private static final String SELECT_LAST_LOCATION =
             "SELECT * FROM locations ORDER BY ts LIMIT ?";
     private static final String INSERT_LOCATIONS =
-            "INSERT OR IGNORE INTO locations(ts, lat, lon) " +
-            "VALUES (?, ?, ?)";
+            "INSERT OR IGNORE INTO locations(ts, lat, lon, speed, altitude, accuracy, bearing, provider) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String DELETE_FROM_LOCATION =
             "DELETE FROM locations WHERE _id=?";
     private static final String DELETE_OLD_ITEMS =
@@ -50,6 +55,11 @@ public class LocationTable {
         private long ts;
         private double lat;
         private double lon;
+        private float speed;
+        private float altitude;
+        private float accuracy;
+        private float bearing;
+        private String provider;
 
         public Location() {}
 
@@ -57,6 +67,11 @@ public class LocationTable {
             this.ts = location.getTime();
             this.lat = location.getLatitude();
             this.lon = location.getLongitude();
+            this.speed = location.getSpeed();
+            this.altitude = location.getAltitude();
+            this.accuracy = location.getAccuracy();
+            this.bearing = location.getBearing();
+            this.provider = location.getProvider();
         }
 
         @SuppressLint("Range")
@@ -65,6 +80,11 @@ public class LocationTable {
             ts = cursor.getLong(cursor.getColumnIndex("ts"));
             lat = cursor.getDouble(cursor.getColumnIndex("lat"));
             lon = cursor.getDouble(cursor.getColumnIndex("lon"));
+            speed = cursor.getFloat(cursor.getColumnIndex("speed"));
+            altitude = cursor.getFloat(cursor.getColumnIndex("altitude"));
+            accuracy = cursor.getFloat(cursor.getColumnIndex("accuracy"));
+            bearing = cursor.getFloat(cursor.getColumnIndex("bearing"));
+            provider = cursor.getString(cursor.getColumnIndex("provider"));
         }
 
         public long getId() {
@@ -98,6 +118,46 @@ public class LocationTable {
         public void setLon(double lon) {
             this.lon = lon;
         }
+
+        public float getSpeed() {
+            return speed;
+        }
+
+        public void setSpeed(float speed) {
+            this.speed = speed;
+        }
+
+        public float getAltitude() {
+            return altitude;
+        }
+
+        public void setAltitude(float altitude) {
+            this.altitude = altitude;
+        }
+
+        public float getAccuracy() {
+            return accuracy;
+        }
+
+        public void setAccuracy(float accuracy) {
+            this.accuracy = accuracy;
+        }
+
+        public float getBearing() {
+            return bearing;
+        }
+
+        public void setBearing(float bearing) {
+            this.bearing = bearing;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
     }
 
     public static String getCreateTableSql() {
@@ -109,7 +169,12 @@ public class LocationTable {
             db.execSQL(INSERT_LOCATIONS, new String[]{
                     Long.toString(location.getTs()),
                     Double.toString(location.getLat()),
-                    Double.toString(location.getLon())
+                    Double.toString(location.getLon()),
+                    Float.toString(location.getSpeed()),
+                    Float.toString(location.getAltitude()),
+                    Float.toString(location.getAccuracy()),
+                    Float.toString(location.getBearing()),
+                    location.getProvider() != null ? location.getProvider() : ""
             });
         } catch (SQLException e) {
             e.printStackTrace();
