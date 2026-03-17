@@ -65,6 +65,7 @@ public class ServerConfig {
     private Integer keepaliveTime;
     private String requestUpdates;
     private Boolean disableLocation;
+    private Boolean locationTrackingEnabled;
     private String appPermissions;
 
     private Boolean usbStorage;
@@ -417,6 +418,14 @@ public class ServerConfig {
 
     public void setDisableLocation(Boolean disableLocation) {
         this.disableLocation = disableLocation;
+    }
+
+    public Boolean getLocationTrackingEnabled() {
+        return locationTrackingEnabled;
+    }
+
+    public void setLocationTrackingEnabled(Boolean locationTrackingEnabled) {
+        this.locationTrackingEnabled = locationTrackingEnabled;
     }
 
     public String getAppPermissions() {

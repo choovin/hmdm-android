@@ -68,7 +68,7 @@ public class LocationTable {
             this.lat = location.getLatitude();
             this.lon = location.getLongitude();
             this.speed = location.getSpeed();
-            this.altitude = location.getAltitude();
+            this.altitude = (float) location.getAltitude();
             this.accuracy = location.getAccuracy();
             this.bearing = location.getBearing();
             this.provider = location.getProvider();
@@ -80,10 +80,10 @@ public class LocationTable {
             ts = cursor.getLong(cursor.getColumnIndex("ts"));
             lat = cursor.getDouble(cursor.getColumnIndex("lat"));
             lon = cursor.getDouble(cursor.getColumnIndex("lon"));
-            speed = cursor.getFloat(cursor.getColumnIndex("speed"));
-            altitude = cursor.getFloat(cursor.getColumnIndex("altitude"));
-            accuracy = cursor.getFloat(cursor.getColumnIndex("accuracy"));
-            bearing = cursor.getFloat(cursor.getColumnIndex("bearing"));
+            speed = (float) cursor.getDouble(cursor.getColumnIndex("speed"));
+            altitude = (float) cursor.getDouble(cursor.getColumnIndex("altitude"));
+            accuracy = (float) cursor.getDouble(cursor.getColumnIndex("accuracy"));
+            bearing = (float) cursor.getDouble(cursor.getColumnIndex("bearing"));
             provider = cursor.getString(cursor.getColumnIndex("provider"));
         }
 

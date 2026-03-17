@@ -22,11 +22,17 @@ package com.hmdm.launcher.pro;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.view.View;
 
+import com.hmdm.launcher.Const;
 import com.hmdm.launcher.R;
+import com.hmdm.launcher.db.LocationTable;
+import com.hmdm.launcher.helper.SettingsHelper;
 import com.hmdm.launcher.json.ServerConfig;
+import com.hmdm.launcher.util.RemoteLogger;
+import com.hmdm.launcher.worker.LocationUploadWorker;
 
 import java.util.Calendar;
 
@@ -121,7 +127,43 @@ public class ProUtils {
     }
 
     public static void processLocation(Context context, Location location, String provider) {
-        // Stub    
+        // Check if location tracking is enabled
+        if (!isLocationTrackingEnabled(context)) {
+            return;
+        }
+
+        // Create location data object
+        LocationTable.Location locData = new LocationTable.Location();
+        locData.setTs(System.currentTimeMillis());
+        locData.setLat(location.getLatitude());
+        locData.setLon(location.getLongitude());
+        locData.setSpeed(location.getSpeed());
+        locData.setAltitude((float) location.getAltitude());
+        locData.setAccuracy(location.getAccuracy());
+        locData.setBearing(location.getBearing());
+        locData.setProvider(provider);
+
+        // Store to database
+        try {
+            SQLiteDatabase db = context.openOrCreateDatabase("hmdm.db", Context.MODE_PRIVATE, null);
+            LocationTable.insert(db, locData);
+            db.close();
+        } catch (Exception e) {
+            RemoteLogger.log(context, Const.LOG_ERROR, "Failed to save location: " + e.getMessage());
+        }
+
+        // Trigger batch upload
+        LocationUploadWorker.scheduleUpload(context);
+    }
+
+    private static boolean isLocationTrackingEnabled(Context context) {
+        // Read from config, default to enabled if not set
+        ServerConfig config = SettingsHelper.getInstance(context).getConfig();
+        if (config == null) {
+            return false;
+        }
+        Boolean enabled = config.getLocationTrackingEnabled();
+        return enabled == null || enabled;
     }
 
     public static String getAppName(Context context) {
