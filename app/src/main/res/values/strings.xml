@@ -18,8 +18,8 @@
   -->
 
 <resources>
-    <string name="white_app_name" translatable="false">MDM Agent</string>
-    <string name="app_name" translatable="false">Headwind MDM</string>
+    <string name="white_app_name" translatable="false">RMDM-Agent</string>
+    <string name="app_name" translatable="false">RMDM-Agent</string>
     <string name="admin_title">Administrator</string>
     <string name="vendor" translatable="false">h-mdm.com</string>
     <string name="install_error">Error installing</string>
@@ -164,4 +164,10 @@
     <string name="admin_not_active">Device admin not active, cannot execute operation</string>
     <string name="device_locked_confirm">Device locked</string>
     <string name="operation_failed">Operation failed: %s</string>
+
+    <!-- Remote Control -->
+    <string name="remote_control_channel">Remote Control</string>
+    <string name="remote_control_notification_title">Remote Control Active</string>
+    <string name="remote_control_notification_text">This device is being remotely controlled</string>
+    <string name="stop">Stop</string>
 </resources>

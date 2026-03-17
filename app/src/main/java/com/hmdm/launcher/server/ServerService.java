@@ -127,4 +127,12 @@ public interface ServerService {
     Call<ResponseBody> uploadPhoto(@Path("project") String project, @Path("number") String number,
                                     @Part("photo") RequestBody photo, @Part("filename") RequestBody filename);
 
+    // Remote control - signaling
+    @POST("{project}/rest/plugins/devicecontrol/signal/{number}")
+    @Headers("Content-Type: application/json")
+    Call<ResponseBody> sendControlSignal(@Path("project") String project, @Path("number") String number, @Body Object signal);
+
+    @GET("{project}/rest/plugins/devicecontrol/session/{number}")
+    Call<ResponseBody> getControlSession(@Path("project") String project, @Path("number") String number);
+
 }
