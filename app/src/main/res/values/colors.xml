@@ -31,4 +31,14 @@
 
     <color name="statusBarLight">#aaffffff</color>
     <color name="statusBarDark">#aa000000</color>
+
+    <!-- Confirm Dialog Colors -->
+    <color name="background_dark">#1A1A1A</color>
+    <color name="warning_red">#FF5722</color>
+    <color name="info_background">#2D3748</color>
+    <color name="warning_background">#4A1A1A</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_hint">#808080</color>
+    <color name="accent_color">#4CAF50</color>
 </resources>

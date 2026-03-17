@@ -141,4 +141,15 @@
         -->
         <item>isrg_root_x1.pem</item>
     </string-array>
+
+    <!-- Confirm Dialog Strings -->
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="lock_info_title">Lock Information</string>
+    <string name="lock_info_content">The device will be locked after the action is completed.</string>
+    <string name="factory_reset_warning">Warning: Factory Reset</string>
+    <string name="factory_reset_info">All data on the device will be erased. This action cannot be undone.</string>
+    <string name="confirm_input_label">Type the text below to confirm:</string>
+    <string name="confirm_input_hint">Enter confirmation</string>
+    <string name="countdown_label">Time remaining:</string>
 </resources>
