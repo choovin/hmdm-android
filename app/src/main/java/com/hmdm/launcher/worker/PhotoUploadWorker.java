@@ -98,11 +98,12 @@ public class PhotoUploadWorker extends Worker {
     }
 
     private boolean uploadPhoto(ServerService serverService, String project, String deviceNumber, File photo) throws IOException {
-        // Read file content
-        FileInputStream fis = new FileInputStream(photo);
-        byte[] photoData = new byte[(int) photo.length()];
-        fis.read(photoData);
-        fis.close();
+        // Read file content with try-with-resources
+        byte[] photoData;
+        try (FileInputStream fis = new FileInputStream(photo)) {
+            photoData = new byte[(int) photo.length()];
+            fis.read(photoData);
+        }
 
         // Create request body
         RequestBody photoBody = RequestBody.create(MediaType.parse("application/octet-stream"), photoData);
