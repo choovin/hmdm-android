@@ -187,3 +187,45 @@ Multiple foreground services are used:
 ### Localization
 
 The app supports 15+ languages defined in `res/values-*/` directories.
+
+## Project Structure
+
+This repository is part of a larger Headwind MDM ecosystem:
+
+```
+jubensha-hmdm-ws/
+├── hmdm-android/          # Android client (this repo)
+├── hmdm-server/           # MDM server (Java/JAX-RS)
+└── hmdm-docker/           # Docker deployment
+```
+
+## Documentation
+
+Key documentation in `knowledge/` folder:
+- `20260317-*/HeadwindMDM企业功能对接评估方案*.md` - Enterprise feature integration guides
+- `20260318-*/HeadwindMDM-Server代码审核指南.md` - Server code review guide
+- `20260318-*/HeadwindMDM-E2E端到端测试指南.md` - E2E test procedures for 10 enterprise features
+- `20260318-*/HeadwindMDM-项目记忆.md` - Project memory and completed work
+
+## Enterprise Features
+
+The MDM supports 10 enterprise features:
+1. **Kiosk Mode** - Lock device to specific apps (ProUtils.java)
+2. **Location Tracking** - GPS tracking (LocationUploadWorker, LocationService)
+3. **Remote Control** - Screen capture, lock, reboot (RemoteControlService)
+4. **Network Filter** - VPN-based traffic filtering (NetworkFilterService)
+5. **Contact Sync** - Bidirectional contact sync (ContactSyncWorker)
+6. **Photo Upload** - Device photo upload (PhotoUploadWorker)
+7. **Remote Lock** - Remote device lock
+8. **Remote Reboot** - Remote device reboot
+9. **Factory Reset** - Remote factory reset
+10. **LDAP Integration** - Server-side LDAP authentication
+
+## Server API Endpoints
+
+Server provides REST APIs at `/plugins/*` paths:
+- `/plugins/devicelocations/public` - Location tracking
+- `/plugins/devicephoto/public` - Photo upload
+- `/plugins/devicecontrol` - Remote control
+- `/plugins/networkfilter` - Network filtering
+- `/plugins/contacts` - Contact sync
