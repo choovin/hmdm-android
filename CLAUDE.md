@@ -229,3 +229,27 @@ Server provides REST APIs at `/plugins/*` paths:
 - `/plugins/devicecontrol` - Remote control
 - `/plugins/networkfilter` - Network filtering
 - `/plugins/contacts` - Contact sync
+
+---
+
+# gstack
+
+本项目使用 gstack 进行网页浏览和自动化测试。
+
+**重要**: 对于所有网页浏览任务，使用 `/browse` 技能。永远不要使用 mcp__claude-in-chrome__* 工具。
+
+## 可用技能列表
+
+- `/plan-ceo-review` - CEO 视角产品评审规划
+- `/plan-eng-review` - 工程评审规划
+- `/plan-design-review` - 设计评审规划
+- `/design-consultation` - 设计咨询
+- `/review` - 代码/产品评审
+- `/ship` - 发布功能或版本
+- `/browse` - 网页浏览（使用此工具替代 MCP chrome 工具）
+- `/qa` - 质量保证测试
+- `/qa-only` - 仅 QA 报告模式
+- `/qa-design-review` - QA 设计评审
+- `/setup-browser-cookies` - 设置浏览器认证 cookies
+- `/retro` - 项目回顾
+- `/document-release` - 发布文档
