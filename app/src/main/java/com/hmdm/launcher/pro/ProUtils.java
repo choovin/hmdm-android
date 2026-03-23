@@ -19,6 +19,7 @@
 
 package com.hmdm.launcher.pro;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
@@ -27,10 +28,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.location.Location;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import android.view.Gravity;
 import android.view.View;
-
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 import com.hmdm.launcher.Const;
 import com.hmdm.launcher.R;
 import com.hmdm.launcher.db.DatabaseHelper;
@@ -79,9 +87,101 @@ public class ProUtils {
     }
 
     // Add a transparent view on top of the status bar which prevents user interaction with the status bar
+    @SuppressLint("WrongConstant")
     public static View preventStatusBarExpansion(Activity activity) {
-        // Stub
+        try {
+            View statusBarBlocker = null;
+
+            // For Android 11+ (API 30+), use DevicePolicyManager to disable status bar
+            // This only works when in LockTask mode
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                DevicePolicyManager dpm = (DevicePolicyManager) activity.getSystemService(Context.DEVICE_POLICY_SERVICE);
+                ComponentName adminComponent = new ComponentName(activity, com.hmdm.launcher.AdminReceiver.class);
+                if (dpm.isAdminActive(adminComponent)) {
+                    // Try to disable status bar (only works in LockTask mode)
+                    boolean disabled = dpm.setStatusBarDisabled(adminComponent, true);
+                    RemoteLogger.log(activity, Const.LOG_INFO, "Status bar disabled via DevicePolicyManager: " + disabled);
+                }
+            }
+
+            // Always create overlay as fallback or complement
+            if (Settings.canDrawOverlays(activity)) {
+                WindowManager windowManager = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
+                statusBarBlocker = new View(activity);
+                statusBarBlocker.setBackgroundColor(Color.TRANSPARENT);
+
+                int statusBarHeight = getStatusBarHeight(activity);
+
+                LayoutParams params;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    params = new LayoutParams(
+                            LayoutParams.TYPE_APPLICATION_OVERLAY,
+                            LayoutParams.FLAG_NOT_FOCUSABLE |
+                            LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                            LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                            LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            PixelFormat.TRANSLUCENT);
+                } else {
+                    params = new LayoutParams(
+                            LayoutParams.TYPE_SYSTEM_ERROR,
+                            LayoutParams.FLAG_NOT_FOCUSABLE |
+                            LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                            LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                            LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            PixelFormat.TRANSLUCENT);
+                }
+
+                params.gravity = Gravity.TOP | Gravity.FILL_HORIZONTAL;
+                params.width = LayoutParams.MATCH_PARENT;
+                params.height = statusBarHeight;
+                params.x = 0;
+                params.y = 0;
+
+                windowManager.addView(statusBarBlocker, params);
+                RemoteLogger.log(activity, Const.LOG_INFO, "Status bar overlay added, height: " + statusBarHeight);
+            } else {
+                RemoteLogger.log(activity, Const.LOG_WARN, "Overlay permission not granted, cannot block status bar");
+            }
+
+            return statusBarBlocker;
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to block status bar: " + e.getMessage());
+        }
         return null;
+    }
+
+    private static int getStatusBarHeight(Context context) {
+        int result = 0;
+        int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = context.getResources().getDimensionPixelSize(resourceId);
+        }
+        return result > 0 ? result : 48;  // Default 48dp
+    }
+
+    public static void removeStatusBarBlocker(Activity activity, View blockerView) {
+        if (blockerView != null && blockerView.isAttachedToWindow()) {
+            try {
+                WindowManager windowManager = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
+                windowManager.removeView(blockerView);
+                RemoteLogger.log(activity, Const.LOG_INFO, "Status bar blocker removed");
+            } catch (Exception e) {
+                RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to remove status bar blocker: " + e.getMessage());
+            }
+        }
+
+        // Also re-enable status bar on Android 11+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                DevicePolicyManager dpm = (DevicePolicyManager) activity.getSystemService(Context.DEVICE_POLICY_SERVICE);
+                ComponentName adminComponent = new ComponentName(activity, com.hmdm.launcher.AdminReceiver.class);
+                if (dpm.isAdminActive(adminComponent)) {
+                    dpm.setStatusBarDisabled(adminComponent, false);
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
     }
 
     // Add a transparent view on top of a swipeable area at the right (opens app list on Samsung tablets)
