@@ -1899,9 +1899,13 @@ public class MainActivity
     private void sendDeviceInfoAfterReconfigure() {
         if (needSendDeviceInfoAfterReconfigure) {
             needSendDeviceInfoAfterReconfigure = false;
-            SendDeviceInfoTask sendDeviceInfoTask = new SendDeviceInfoTask(this);
-            DeviceInfo deviceInfo = DeviceInfoProvider.getDeviceInfo(this, true, true);
-            sendDeviceInfoTask.execute(deviceInfo);
+            // Run on background thread to avoid blocking UI - getDeviceInfo() performs
+            // heavy I/O (package enumeration, file checksums, database queries)
+            android.os.AsyncTask.execute(() -> {
+                SendDeviceInfoTask sendDeviceInfoTask = new SendDeviceInfoTask(this);
+                DeviceInfo deviceInfo = DeviceInfoProvider.getDeviceInfo(this, true, true);
+                sendDeviceInfoTask.execute(deviceInfo);
+            });
         }
     }
 

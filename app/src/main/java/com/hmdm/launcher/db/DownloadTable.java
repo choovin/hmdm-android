@@ -48,6 +48,8 @@ public class DownloadTable {
             "DELETE FROM downloads WHERE path=?";
     private static final String SELECT_ALL_DOWNLOADS =
             "SELECT * FROM downloads";
+    private static final String SELECT_DOWNLOADS_PAGED =
+            "SELECT * FROM downloads LIMIT ? OFFSET ?";
     private static final String SELECT_DOWNLOAD_BY_PATH =
             "SELECT * FROM downloads WHERE path=?";
     private static final String DELETE_ALL_DOWNLOADS =
@@ -88,16 +90,43 @@ public class DownloadTable {
         }
     }
 
+    // Safety limit to prevent OOM when loading all records
+    private static final int DEFAULT_SELECT_LIMIT = 1000;
+
     @SuppressLint("Range")
     public static List<Download> selectAll(SQLiteDatabase db) {
-        Cursor cursor = db.rawQuery(SELECT_ALL_DOWNLOADS, new String[] {});
+        return selectAllPaged(db, DEFAULT_SELECT_LIMIT, 0);
+    }
+
+    /**
+     * Paginated query for downloads table.
+     * Use this method instead of selectAll() when dealing with large datasets
+     * to avoid OOM and reduce memory pressure.
+     *
+     * @param db     Database instance
+     * @param limit  Maximum number of records to return (use 0 for no limit)
+     * @param offset Number of records to skip
+     * @return List of downloads within the specified page
+     */
+    @SuppressLint("Range")
+    public static List<Download> selectAllPaged(SQLiteDatabase db, int limit, int offset) {
         List<Download> result = new LinkedList<>();
+        Cursor cursor;
+
+        if (limit > 0) {
+            cursor = db.rawQuery(SELECT_DOWNLOADS_PAGED, new String[]{
+                    Integer.toString(limit),
+                    Integer.toString(offset)
+            });
+        } else {
+            // No pagination: use the original query
+            cursor = db.rawQuery(SELECT_ALL_DOWNLOADS, new String[]{});
+        }
 
         boolean isDataNotEmpty = cursor.moveToFirst();
         while (isDataNotEmpty) {
             Download item = new Download(cursor);
             result.add(item);
-
             isDataNotEmpty = cursor.moveToNext();
         }
         cursor.close();

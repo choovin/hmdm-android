@@ -27,7 +27,6 @@ import com.hmdm.launcher.server.ServerServiceKeeper;
 import com.hmdm.launcher.util.RemoteLogger;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -98,15 +97,9 @@ public class PhotoUploadWorker extends Worker {
     }
 
     private boolean uploadPhoto(ServerService serverService, String project, String deviceNumber, File photo) throws IOException {
-        // Read file content with try-with-resources
-        byte[] photoData;
-        try (FileInputStream fis = new FileInputStream(photo)) {
-            photoData = new byte[(int) photo.length()];
-            fis.read(photoData);
-        }
-
-        // Create request body
-        RequestBody photoBody = RequestBody.create(MediaType.parse("application/octet-stream"), photoData);
+        // Use OkHttp's streaming RequestBody - reads file in chunks without loading
+        // entire content into memory, preventing OOM for large photos
+        RequestBody photoBody = RequestBody.create(MediaType.parse("application/octet-stream"), photo);
         RequestBody filenameBody = RequestBody.create(MediaType.parse("text/plain"), photo.getName());
 
         // Upload

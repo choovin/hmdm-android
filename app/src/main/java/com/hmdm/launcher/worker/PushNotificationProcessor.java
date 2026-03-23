@@ -58,11 +58,19 @@ import java.util.List;
 import java.util.concurrent.Executors;
 
 public class PushNotificationProcessor {
+
+    // Debounce mechanism for config updates: prevents update storms when multiple
+    // TYPE_CONFIG_UPDATED messages arrive in quick succession
+    private static volatile long sLastConfigUpdateTime = 0;
+    private static final long CONFIG_UPDATE_DEBOUNCE_MS = 2000; // 2 seconds debounce window
+    private static android.os.Handler sConfigUpdateHandler = null;
+    private static Runnable sPendingConfigUpdate = null;
+
     public static void process(PushMessage message, Context context) {
         RemoteLogger.log(context, Const.LOG_INFO, "Got Push Message, type " + message.getMessageType());
         if (message.getMessageType().equals(PushMessage.TYPE_CONFIG_UPDATED)) {
-            // Update local configuration
-            ConfigUpdater.notifyConfigUpdate(context);
+            // Debounced config update: coalesce rapid successive messages into one update
+            debouncedNotifyConfigUpdate(context);
             // The configUpdated should be broadcasted after the configuration update is completed
             return;
         } else if (message.getMessageType().equals(PushMessage.TYPE_RUN_APP)) {
@@ -534,6 +542,36 @@ public class PushNotificationProcessor {
             RemoteLogger.log(context, Const.LOG_ERROR, "Failed to clear app data: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Debounced wrapper for config update notifications.
+     * When multiple TYPE_CONFIG_UPDATED messages arrive within CONFIG_UPDATE_DEBOUNCE_MS,
+     * only one actual config update is triggered after the debounce window expires.
+     * This prevents update storms and reduces server load.
+     */
+    private static void debouncedNotifyConfigUpdate(final Context context) {
+        long now = System.currentTimeMillis();
+
+        // If a config update is already pending, just update the timestamp and return
+        // The existing scheduled update will fire after the debounce window
+        if (sPendingConfigUpdate != null) {
+            sLastConfigUpdateTime = now;
+            return;
+        }
+
+        // Create new pending update
+        sLastConfigUpdateTime = now;
+        if (sConfigUpdateHandler == null) {
+            sConfigUpdateHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        }
+
+        sPendingConfigUpdate = () -> {
+            sPendingConfigUpdate = null;
+            ConfigUpdater.notifyConfigUpdate(context);
+        };
+
+        sConfigUpdateHandler.postDelayed(sPendingConfigUpdate, CONFIG_UPDATE_DEBOUNCE_MS);
     }
 
 }
