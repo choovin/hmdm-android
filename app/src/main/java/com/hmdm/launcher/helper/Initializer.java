@@ -58,7 +58,7 @@ public class Initializer {
             Utils.lockSafeBoot(context);
             Utils.initPasswordReset(context);
 
-            RemoteLogger.log(context, Const.LOG_INFO, "MDM Launcher " + BuildConfig.VERSION_NAME + "-" + Utils.getLauncherVariant() + " started");
+            RemoteLogger.log(context, Const.LOG_INFO, "MDM Launcher " + BuildConfig.VERSION_NAME + " started");
 
             InstallUtils.clearTempFiles(context);
 

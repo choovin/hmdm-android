@@ -1015,6 +1015,9 @@ public class MainActivity
     }
 
     private void startLauncher() {
+        // Grant phone permissions early (needed for IMEI, serial, phone number)
+        Utils.autoGrantPhonePermission(this);
+
         createButtons();
 
         if (configUpdater.isPendingAppInstall()) {
