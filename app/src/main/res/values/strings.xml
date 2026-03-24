@@ -176,4 +176,11 @@
     <string name="network_filter_notification_text">Network traffic is being monitored</string>
 
     <string name="stop">Stop</string>
+
+    <!-- Device Owner Setup Dialog -->
+    <string name="dialog_device_owner_title">设备管理员设置</string>
+    <string name="dialog_device_owner_message">为了启用完整功能（获取设备IMEI、序列号、电话号码，以及Kiosk模式等MDM特性），需要将本应用设置为设备管理员。</string>
+    <string name="dialog_device_owner_setup">去设置</string>
+    <string name="dialog_device_owner_skip">暂不设置</string>
+    <string name="dialog_device_owner_explanation">启用RMDM-Agent作为设备管理员，以获取IMEI、序列号、电话号码并启用Kiosk模式。</string>
 </resources>

@@ -26,6 +26,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -115,6 +116,7 @@ import com.hmdm.launcher.util.DeviceInfoProvider;
 import com.hmdm.launcher.util.InstallUtils;
 import com.hmdm.launcher.util.PreferenceLogger;
 import com.hmdm.launcher.util.RemoteLogger;
+import com.hmdm.launcher.util.LegacyUtils;
 import com.hmdm.launcher.util.SystemUtils;
 import com.hmdm.launcher.util.Utils;
 import com.hmdm.launcher.worker.SendDeviceInfoWorker;
@@ -337,6 +339,7 @@ public class MainActivity
     private View kioskUnlockButton;
 
     private boolean firstStartAfterProvisioning = false;
+    private boolean deviceOwnerDialogShown = false;
 
     @Override
     protected void onCreate( Bundle savedInstanceState ) {
@@ -456,6 +459,14 @@ public class MainActivity
         if (requestCode == REQUEST_CODE_GPS_STATE_CHANGE) {
             // User changed GPS state, let's update location service
             startLocationServiceWithRetry();
+        } else if (requestCode == REQUEST_CODE_ENABLE_DEVICE_ADMIN) {
+            if (Utils.isDeviceOwner(this)) {
+                // Device owner enabled successfully, continue
+                setDefaultLauncherEarly();
+            } else {
+                // User declined or failed, continue anyway
+                checkAndStartLauncher();
+            }
         }
     }
 
@@ -495,9 +506,11 @@ public class MainActivity
             } else {
                 setDefaultLauncherEarly();
             }
-        } else {
-            setSelfAsDeviceOwner();
         }
+        // Always check device owner status on startup
+        // Even for non-privileged builds, we want to prompt user to set device owner
+        // if it's not already set (needed for IMEI, serial, phone number access)
+        setSelfAsDeviceOwner();
     }
 
     private void lockOrientation() {
@@ -608,20 +621,38 @@ public class MainActivity
             return;
         }
 
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-                if (!SystemUtils.becomeDeviceOwnerByCommand(MainActivity.this)) {
-                    SystemUtils.becomeDeviceOwnerByXmlFile(MainActivity.this);
-                };
-                return null;
-            }
+        // Only show dialog once to avoid repeated prompts on every onResume
+        if (deviceOwnerDialogShown) {
+            checkAndStartLauncher();
+            return;
+        }
+        deviceOwnerDialogShown = true;
 
-            @Override
-            protected void onPostExecute(Void v) {
-                setDefaultLauncherEarly();
-            }
-        }.execute();
+        // Show dialog to prompt user to set device owner
+        showDeviceOwnerSetupDialog();
+    }
+
+    private static final int REQUEST_CODE_ENABLE_DEVICE_ADMIN = 1001;
+
+    private void showDeviceOwnerSetupDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_device_owner_title)
+                .setMessage(R.string.dialog_device_owner_message)
+                .setPositiveButton(R.string.dialog_device_owner_setup, (dialog, which) -> {
+                    // Launch system device admin settings
+                    ComponentName adminComponent = LegacyUtils.getAdminComponentName(this);
+                    Intent intent = new Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                    intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
+                    intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                            getString(R.string.dialog_device_owner_explanation));
+                    startActivityForResult(intent, REQUEST_CODE_ENABLE_DEVICE_ADMIN);
+                })
+                .setNegativeButton(R.string.dialog_device_owner_skip, (dialog, which) -> {
+                    // Continue without device owner - some features will be limited
+                    checkAndStartLauncher();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void startServices() {
