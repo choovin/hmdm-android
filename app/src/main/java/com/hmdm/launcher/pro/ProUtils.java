@@ -191,7 +191,32 @@ public class ProUtils {
     }
 
     public static View createKioskUnlockButton(Activity activity) {
-        // Stub
+        try {
+            // Create a small transparent key button in the top-right corner
+            // User needs to click it 4 times to unlock kiosk mode
+            android.widget.ImageButton button = new android.widget.ImageButton(activity);
+            button.setImageResource(R.drawable.ic_vpn_key_black_24dp);
+            button.setBackgroundColor(Color.TRANSPARENT);
+            button.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+
+            int size = (int) (24 * activity.getResources().getDisplayMetrics().density);
+            android.view.WindowManager.LayoutParams params = new android.view.WindowManager.LayoutParams(
+                    size, size,
+                    android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                    android.graphics.PixelFormat.TRANSLUCENT);
+            params.gravity = android.view.Gravity.TOP | android.view.Gravity.END;
+            params.x = (int) (16 * activity.getResources().getDisplayMetrics().density);
+            params.y = (int) (16 * activity.getResources().getDisplayMetrics().density);
+
+            android.view.WindowManager wm = (android.view.WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
+            wm.addView(button, params);
+            RemoteLogger.log(activity, Const.LOG_INFO, "Kiosk unlock button added");
+            return button;
+        } catch (Exception e) {
+            RemoteLogger.log(activity, Const.LOG_ERROR, "Failed to create kiosk unlock button: " + e.getMessage());
+        }
         return null;
     }
 

@@ -334,6 +334,7 @@ public class MainActivity
 
     private View statusBarView;
     private View rightToolbarView;
+    private View kioskUnlockButton;
 
     private boolean firstStartAfterProvisioning = false;
 
@@ -870,6 +871,15 @@ public class MainActivity
 
         if (settingsHelper != null && settingsHelper.getConfig() != null && settingsHelper.getConfig().getLockStatusBar() != null && settingsHelper.getConfig().getLockStatusBar()) {
             // If the admin requested status bar lock (may be required for some early Samsung devices), block the status bar and right bar (App list) expansion
+            // Remove old views before creating new ones to prevent memory leak
+            if (statusBarView != null && statusBarView.isAttachedToWindow()) {
+                try {
+                    WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                    wm.removeView(statusBarView);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
             statusBarView = ProUtils.preventStatusBarExpansion(this);
             rightToolbarView = ProUtils.preventApplicationsList(this);
         }
@@ -955,6 +965,17 @@ public class MainActivity
     }
 
     private void createButtons() {
+        // Remove old kiosk unlock button if exists
+        if (kioskUnlockButton != null && kioskUnlockButton.isAttachedToWindow()) {
+            try {
+                WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                wm.removeView(kioskUnlockButton);
+            } catch (Exception e) {
+                // Ignore
+            }
+            kioskUnlockButton = null;
+        }
+
         ServerConfig config = settingsHelper.getConfig();
         if (ProUtils.kioskModeRequired(this) && !getPackageName().equals(settingsHelper.getConfig().getMainApp())) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
@@ -968,7 +989,6 @@ public class MainActivity
                 createLauncherButtons();
                 return;
             }
-            View kioskUnlockButton = null;
             if (config.isKioskExit()) {     // Should be true by default, but false on older web panel versions
                 kioskUnlockButton = ProUtils.createKioskUnlockButton(this);
             }
@@ -2004,6 +2024,11 @@ public class MainActivity
 
         if ( rightToolbarView != null ) {
             try { manager.removeView( rightToolbarView ); }
+            catch ( Exception e ) { e.printStackTrace(); }
+        }
+
+        if ( kioskUnlockButton != null ) {
+            try { manager.removeView( kioskUnlockButton ); }
             catch ( Exception e ) { e.printStackTrace(); }
         }
 
