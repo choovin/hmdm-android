@@ -339,7 +339,6 @@ public class MainActivity
     private View kioskUnlockButton;
 
     private boolean firstStartAfterProvisioning = false;
-    private boolean deviceOwnerDialogShown = false;
 
     @Override
     protected void onCreate( Bundle savedInstanceState ) {
@@ -613,12 +612,14 @@ public class MainActivity
             return;
         }
 
-        // Only show dialog once to avoid repeated prompts on every onResume
-        if (deviceOwnerDialogShown) {
+        // Check if user already chose to skip or go to settings
+        boolean userSkipped = getSharedPreferences(Const.PREFERENCES, MODE_PRIVATE)
+                .getBoolean("device_owner_prompt_skipped", false);
+        if (userSkipped) {
+            // User already chose to skip or go to settings - don't bother them again
             checkAndStartLauncher();
             return;
         }
-        deviceOwnerDialogShown = true;
 
         // Show dialog to prompt user to set device owner
         showDeviceOwnerSetupDialog();
@@ -629,12 +630,23 @@ public class MainActivity
                 .setTitle(R.string.dialog_device_owner_title)
                 .setMessage(R.string.dialog_device_owner_message)
                 .setPositiveButton(R.string.dialog_device_owner_setup, (dialog, which) -> {
+                    // User chose to go to settings - save flag so we don't bother them again
+                    // until they actually set up device owner or explicitly skip
+                    getSharedPreferences(Const.PREFERENCES, MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("device_owner_prompt_skipped", true)
+                            .apply();
                     // Open system settings - user needs to manually navigate to Device Admin
                     Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 })
                 .setNegativeButton(R.string.dialog_device_owner_skip, (dialog, which) -> {
+                    // User explicitly skipped - don't ask again this session
+                    getSharedPreferences(Const.PREFERENCES, MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("device_owner_prompt_skipped", true)
+                            .apply();
                     // Continue without device owner - some features will be limited
                     checkAndStartLauncher();
                 })
