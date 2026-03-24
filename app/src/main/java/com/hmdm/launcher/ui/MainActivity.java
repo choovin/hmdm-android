@@ -1303,6 +1303,29 @@ public class MainActivity
         return true;
     }
 
+    /**
+     * Validates if a string is a valid Android color format.
+     * Valid formats: #RGB, #RRGGBB, #ARGB, #AARRGGBB
+     */
+    private boolean isValidColorString(String colorStr) {
+        if (colorStr == null || colorStr.isEmpty()) {
+            return false;
+        }
+        if (!colorStr.startsWith("#")) {
+            return false;
+        }
+        String hex = colorStr.substring(1);
+        if (hex.length() != 3 && hex.length() != 4 && hex.length() != 6 && hex.length() != 8) {
+            return false;
+        }
+        try {
+            Long.parseLong(hex, 16);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private ImageView createManageButton(int imageResource, int imageResourceBlack, int offset) {
         RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         layoutParams.addRule(RelativeLayout.CENTER_VERTICAL);
@@ -1771,8 +1794,8 @@ public class MainActivity
             }
         }
 
-        // TODO: Somehow binding is null here which causes a crash. Not sure why this could happen.
-        if ( config.getBackgroundColor() != null ) {
+        // Validate and parse background color
+        if ( config.getBackgroundColor() != null && isValidColorString(config.getBackgroundColor())) {
             try {
                 binding.activityMainContentWrapper.setBackgroundColor(Color.parseColor(config.getBackgroundColor()));
             } catch (Exception e) {
@@ -1838,7 +1861,8 @@ public class MainActivity
                     .into(binding.activityMainBackground);
 
             } else {
-                binding.activityMainBackground.setImageDrawable(null);
+                // Use default background image when server doesn't provide one
+                binding.activityMainBackground.setImageResource(R.drawable.background);
             }
 
             Display display = getWindowManager().getDefaultDisplay();
@@ -2001,9 +2025,9 @@ public class MainActivity
                 binding.activityMainTitle.setVisibility(View.GONE);
                 return;
             }
-            if (config.getTextColor() != null) {
+            if (config.getTextColor() != null && isValidColorString(config.getTextColor())) {
                 try {
-                    binding.activityMainTitle.setTextColor(Color.parseColor(settingsHelper.getConfig().getTextColor()));
+                    binding.activityMainTitle.setTextColor(Color.parseColor(config.getTextColor()));
                 } catch (Exception e) {
                     // Invalid color
                     e.printStackTrace();
