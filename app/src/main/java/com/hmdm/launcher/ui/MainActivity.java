@@ -459,14 +459,6 @@ public class MainActivity
         if (requestCode == REQUEST_CODE_GPS_STATE_CHANGE) {
             // User changed GPS state, let's update location service
             startLocationServiceWithRetry();
-        } else if (requestCode == REQUEST_CODE_ENABLE_DEVICE_ADMIN) {
-            if (Utils.isDeviceOwner(this)) {
-                // Device owner enabled successfully, continue
-                setDefaultLauncherEarly();
-            } else {
-                // User declined or failed, continue anyway
-                checkAndStartLauncher();
-            }
         }
     }
 
@@ -632,20 +624,15 @@ public class MainActivity
         showDeviceOwnerSetupDialog();
     }
 
-    private static final int REQUEST_CODE_ENABLE_DEVICE_ADMIN = 1001;
-
     private void showDeviceOwnerSetupDialog() {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.dialog_device_owner_title)
                 .setMessage(R.string.dialog_device_owner_message)
                 .setPositiveButton(R.string.dialog_device_owner_setup, (dialog, which) -> {
-                    // Launch system device admin settings
-                    ComponentName adminComponent = LegacyUtils.getAdminComponentName(this);
-                    Intent intent = new Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-                    intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
-                    intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                            getString(R.string.dialog_device_owner_explanation));
-                    startActivityForResult(intent, REQUEST_CODE_ENABLE_DEVICE_ADMIN);
+                    // Open system settings - user needs to manually navigate to Device Admin
+                    Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
                 })
                 .setNegativeButton(R.string.dialog_device_owner_skip, (dialog, which) -> {
                     // Continue without device owner - some features will be limited
