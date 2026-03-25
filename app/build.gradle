@@ -106,7 +106,7 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('/Users/sailfish-macmini/sailfish-ws/jubensha-hmdm-ws/hmdm-android/runnode-keystore.jks')
+            storeFile file('../runnode-keystore.jks')
             storePassword 'runnode123'
             keyAlias 'runnode'
             keyPassword 'runnode123'
