@@ -9,3 +9,4 @@
 example/
 app/release
 runnode-keystore.jks
+.gstack/
