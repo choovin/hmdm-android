@@ -414,7 +414,7 @@ public class Utils {
             context.getSharedPreferences(Const.PREFERENCES, Context.MODE_PRIVATE)
                     .edit()
                     .putString(Const.PREFERENCES_DATA_TOKEN, token)
-                    .commit();
+                    .apply();
         }
         return token;
     }

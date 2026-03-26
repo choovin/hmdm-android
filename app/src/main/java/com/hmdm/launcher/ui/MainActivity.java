@@ -49,6 +49,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
@@ -376,7 +377,7 @@ public class MainActivity
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                     finishAffinity();
                 }
-                System.exit(0);
+                // System.exit() removed — finishAffinity() is sufficient on API 16+
             }
         });
 
@@ -477,6 +478,18 @@ public class MainActivity
 
         isBackground = false;
 
+        // Clean up any stale statusBarView overlay before resuming
+        // This prevents black screen issues when returning from recent apps / multi-tasking
+        if (statusBarView != null && statusBarView.isAttachedToWindow()) {
+            try {
+                WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+                wm.removeView(statusBarView);
+                statusBarView = null;
+            } catch (Exception e) {
+                // Ignore - view may already be removed
+            }
+        }
+
         // On some Android firmwares, onResume is called before onCreate, so the fields are not initialized
         // Here we initialize all required fields to avoid crash at startup
         reinitApp();
@@ -565,9 +578,11 @@ public class MainActivity
             return;
         }
 
-        new AsyncTask<Void, Void, Void>() {
+        // Use thread instead of deprecated AsyncTask to avoid memory leaks
+        // startActivity() must be called on main thread, so we use runOnUiThread
+        new Thread(new Runnable() {
             @Override
-            protected Void doInBackground(Void... voids) {
+            public void run() {
                 boolean appStarted = false;
                 for (Application application : config.getApplications()) {
                     if (application.isRunAtBoot()) {
@@ -578,7 +593,7 @@ public class MainActivity
                         }
                         Intent launchIntent = getPackageManager().getLaunchIntentForPackage(application.getPkg());
                         if (launchIntent != null) {
-                            startActivity(launchIntent);
+                            runOnUiThread(() -> startActivity(launchIntent));
                             appStarted = true;
                         }
                     }
@@ -595,12 +610,10 @@ public class MainActivity
                     Intent intent = new Intent(MainActivity.this, MainActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     intent.putExtra(Const.RESTORED_ACTIVITY, true);
-                    startActivity(intent);
+                    runOnUiThread(() -> startActivity(intent));
                 }
-
-                return null;
             }
-        }.execute();
+        }).start();
 
     }
 
@@ -696,7 +709,7 @@ public class MainActivity
                 if (permissions[n].equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
                     if (grantResults[n] != PackageManager.PERMISSION_GRANTED) {
                         // The user didn't allow to determine location, this is not critical, just ignore it
-                        preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).commit();
+                        preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).apply();
                         locationDisabled = true;
                     }
                 }
@@ -753,20 +766,17 @@ public class MainActivity
             String defaultLauncher = Utils.getDefaultLauncher(this);
 
             // As per the documentation, setting the default preferred activity should not be done on the main thread
-            new AsyncTask<Void, Void, Void>() {
-                @Override
-                protected Void doInBackground(Void... voids) {
-                    if (!getPackageName().equalsIgnoreCase(defaultLauncher)) {
-                        Utils.setDefaultLauncher(MainActivity.this);
-                    }
-                    return null;
+            // Use HandlerThread instead of deprecated AsyncTask to avoid memory leaks
+            HandlerThread ht = new HandlerThread("DefaultLauncherThread");
+            ht.start();
+            Handler workerHandler = new Handler(ht.getLooper());
+            workerHandler.post(() -> {
+                if (!getPackageName().equalsIgnoreCase(defaultLauncher)) {
+                    Utils.setDefaultLauncher(MainActivity.this);
                 }
-
-                @Override
-                protected void onPostExecute(Void v) {
-                    checkAndStartLauncher();
-                }
-            }.execute();
+                runOnUiThread(() -> checkAndStartLauncher());
+                ht.quitSafely();
+            });
             return;
         }
         checkAndStartLauncher();
@@ -776,7 +786,7 @@ public class MainActivity
 
         boolean deviceOwner = Utils.isDeviceOwner(this);
         preferences.edit().putInt(Const.PREFERENCES_DEVICE_OWNER, deviceOwner ?
-            Const.PREFERENCES_ON : Const.PREFERENCES_OFF).commit();
+            Const.PREFERENCES_ON : Const.PREFERENCES_OFF).apply();
 
         int miuiPermissionMode = preferences.getInt(Const.PREFERENCES_MIUI_PERMISSIONS, -1);
         if (miuiPermissionMode == -1) {
@@ -1200,7 +1210,9 @@ public class MainActivity
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
         layoutParams.type = Utils.OverlayWindowType();
         layoutParams.gravity = Gravity.RIGHT;
-        layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL|WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        layoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
 
         layoutParams.height = WindowManager.LayoutParams.MATCH_PARENT;
         layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
@@ -2068,6 +2080,9 @@ public class MainActivity
 
         settingsHelper.setMainActivityRunning(false);
 
+        // Remove all pending handler callbacks to prevent memory leaks
+        handler.removeCallbacksAndMessages(null);
+
         WindowManager manager = ((WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE));
         if ( applicationNotAllowed != null ) {
             try { manager.removeView( applicationNotAllowed ); }
@@ -2135,7 +2150,57 @@ public class MainActivity
         dismissDialog(systemSettingsDialog);
         dismissDialog(permissionsDialog);
 
+        // Remove all overlay views when going to background to prevent interference
+        // with Android's screenshot capture for recent apps preview
+        removeOverlayViews();
+
         LocalBroadcastManager.getInstance( this ).sendBroadcast( new Intent( Const.ACTION_SHOW_LAUNCHER ) );
+    }
+
+    // Remove all window overlay views to prevent black screen when entering recent apps
+    // These will be recreated by checkAndStartLauncher() when returning to foreground
+    private void removeOverlayViews() {
+        try {
+            WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+
+            if (applicationNotAllowed != null && applicationNotAllowed.isAttachedToWindow()) {
+                try {
+                    wm.removeView(applicationNotAllowed);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
+            applicationNotAllowed = null;
+
+            if (lockScreen != null && lockScreen.isAttachedToWindow()) {
+                try {
+                    wm.removeView(lockScreen);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
+            lockScreen = null;
+
+            if (statusBarView != null && statusBarView.isAttachedToWindow()) {
+                try {
+                    wm.removeView(statusBarView);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
+            statusBarView = null;
+
+            if (rightToolbarView != null && rightToolbarView.isAttachedToWindow()) {
+                try {
+                    wm.removeView(rightToolbarView);
+                } catch (Exception e) {
+                    // Ignore
+                }
+            }
+            rightToolbarView = null;
+        } catch (Exception e) {
+            // Ignore window manager errors
+        }
     }
 
     private void createAndShowAdministratorDialog() {
@@ -2512,7 +2577,7 @@ public class MainActivity
                                             Uri.fromParts("package", getPackageName(), null)));
                                 })
                                 .setNegativeButton(R.string.location_disable, (dialog, which) -> {
-                                    preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).commit();
+                                    preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).apply();
                                     // Continue the main flow!
                                     startLauncher();
                                 })
@@ -2586,18 +2651,21 @@ public class MainActivity
             protected void onPostExecute( Integer result ) {
                 dialogEnterPasswordBinding.setLoading( false );
 
-                String masterPassword = CryptoHelper.getMD5String( "12345678" );
-                if ( settingsHelper.getConfig() != null && settingsHelper.getConfig().getPassword() != null ) {
+                String masterPassword = null;
+                if (settingsHelper.getConfig() != null && settingsHelper.getConfig().getPassword() != null
+                        && !settingsHelper.getConfig().getPassword().isEmpty()) {
                     masterPassword = settingsHelper.getConfig().getPassword();
                 }
 
-                if ( CryptoHelper.getMD5String( dialogEnterPasswordBinding.password.getText().toString() ).
-                        equals( masterPassword ) ) {
+                // Only allow login if server has explicitly configured a password
+                if (masterPassword != null &&
+                        CryptoHelper.getMD5String(dialogEnterPasswordBinding.password.getText().toString())
+                                .equals(masterPassword)) {
                     dismissDialog(enterPasswordDialog);
-                    dialogEnterPasswordBinding.setError( false );
+                    dialogEnterPasswordBinding.setError(false);
                     openAdminPanel();
                 } else {
-                    dialogEnterPasswordBinding.setError( true );
+                    dialogEnterPasswordBinding.setError(true);
                 }
             }
         };

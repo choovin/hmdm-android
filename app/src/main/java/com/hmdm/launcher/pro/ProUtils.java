@@ -118,16 +118,14 @@ public class ProUtils {
                             LayoutParams.TYPE_APPLICATION_OVERLAY,
                             LayoutParams.FLAG_NOT_FOCUSABLE |
                             LayoutParams.FLAG_NOT_TOUCH_MODAL |
-                            LayoutParams.FLAG_LAYOUT_IN_SCREEN |
-                            LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                             PixelFormat.TRANSLUCENT);
                 } else {
                     params = new LayoutParams(
                             LayoutParams.TYPE_SYSTEM_ERROR,
                             LayoutParams.FLAG_NOT_FOCUSABLE |
                             LayoutParams.FLAG_NOT_TOUCH_MODAL |
-                            LayoutParams.FLAG_LAYOUT_IN_SCREEN |
-                            LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                             PixelFormat.TRANSLUCENT);
                 }
 
