@@ -43,7 +43,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -373,7 +372,6 @@ public class MainActivity
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                     finishAffinity();
                 }
-                System.exit(0);
             }
         });
 
@@ -560,9 +558,9 @@ public class MainActivity
             return;
         }
 
-        new AsyncTask<Void, Void, Void>() {
+        new Thread(new Runnable() {
             @Override
-            protected Void doInBackground(Void... voids) {
+            public void run() {
                 boolean appStarted = false;
                 for (Application application : config.getApplications()) {
                     if (application.isRunAtBoot()) {
@@ -573,7 +571,12 @@ public class MainActivity
                         }
                         Intent launchIntent = getPackageManager().getLaunchIntentForPackage(application.getPkg());
                         if (launchIntent != null) {
-                            startActivity(launchIntent);
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    startActivity(launchIntent);
+                                }
+                            });
                             appStarted = true;
                         }
                     }
@@ -587,15 +590,18 @@ public class MainActivity
                     // Notice: if MainActivity will be destroyed after running multiple apps at startup,
                     // we can get the looping here, because startActivity will create a new instance!
                     // That's why we put a boolean extra preventing apps from start
-                    Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                    final Intent intent = new Intent(MainActivity.this, MainActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     intent.putExtra(Const.RESTORED_ACTIVITY, true);
-                    startActivity(intent);
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            startActivity(intent);
+                        }
+                    });
                 }
-
-                return null;
             }
-        }.execute();
+        }).start();
 
     }
 
@@ -607,20 +613,20 @@ public class MainActivity
             return;
         }
 
-        new AsyncTask<Void, Void, Void>() {
+        new Thread(new Runnable() {
             @Override
-            protected Void doInBackground(Void... voids) {
+            public void run() {
                 if (!SystemUtils.becomeDeviceOwnerByCommand(MainActivity.this)) {
                     SystemUtils.becomeDeviceOwnerByXmlFile(MainActivity.this);
-                };
-                return null;
+                }
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        setDefaultLauncherEarly();
+                    }
+                });
             }
-
-            @Override
-            protected void onPostExecute(Void v) {
-                setDefaultLauncherEarly();
-            }
-        }.execute();
+        }).start();
     }
 
     private void startServices() {
@@ -665,7 +671,7 @@ public class MainActivity
                 if (permissions[n].equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
                     if (grantResults[n] != PackageManager.PERMISSION_GRANTED) {
                         // The user didn't allow to determine location, this is not critical, just ignore it
-                        preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).commit();
+                        preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).apply();
                         locationDisabled = true;
                     }
                 }
@@ -722,20 +728,20 @@ public class MainActivity
             String defaultLauncher = Utils.getDefaultLauncher(this);
 
             // As per the documentation, setting the default preferred activity should not be done on the main thread
-            new AsyncTask<Void, Void, Void>() {
+            new Thread(new Runnable() {
                 @Override
-                protected Void doInBackground(Void... voids) {
+                public void run() {
                     if (!getPackageName().equalsIgnoreCase(defaultLauncher)) {
                         Utils.setDefaultLauncher(MainActivity.this);
                     }
-                    return null;
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            checkAndStartLauncher();
+                        }
+                    });
                 }
-
-                @Override
-                protected void onPostExecute(Void v) {
-                    checkAndStartLauncher();
-                }
-            }.execute();
+            }).start();
             return;
         }
         checkAndStartLauncher();
@@ -745,14 +751,14 @@ public class MainActivity
 
         boolean deviceOwner = Utils.isDeviceOwner(this);
         preferences.edit().putInt(Const.PREFERENCES_DEVICE_OWNER, deviceOwner ?
-            Const.PREFERENCES_ON : Const.PREFERENCES_OFF).commit();
+            Const.PREFERENCES_ON : Const.PREFERENCES_OFF).apply();
 
         int miuiPermissionMode = preferences.getInt(Const.PREFERENCES_MIUI_PERMISSIONS, -1);
         if (miuiPermissionMode == -1) {
             preferences.
                     edit().
                     putInt( Const.PREFERENCES_MIUI_PERMISSIONS, Const.PREFERENCES_ON ).
-                    commit();
+                    apply();
             if (checkMiuiPermissions(Const.MIUI_PERMISSIONS)) {
                 // Permissions dialog opened, break the flow!
                 return;
@@ -764,7 +770,7 @@ public class MainActivity
             preferences.
                     edit().
                     putInt( Const.PREFERENCES_MIUI_DEVELOPER, Const.PREFERENCES_ON ).
-                    commit();
+                    apply();
             if (checkMiuiPermissions(Const.MIUI_DEVELOPER)) {
                 // Permissions dialog opened, break the flow!
                 return;
@@ -776,7 +782,7 @@ public class MainActivity
             preferences.
                     edit().
                     putInt( Const.PREFERENCES_MIUI_OPTIMIZATION, Const.PREFERENCES_ON ).
-                    commit();
+                    apply();
             if (checkMiuiPermissions(Const.MIUI_OPTIMIZATION)) {
                 // Permissions dialog opened, break the flow!
                 return;
@@ -789,7 +795,7 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_UNKNOWN_SOURCES, Const.PREFERENCES_ON ).
-                        commit();
+                        apply();
             } else {
                 return;
             }
@@ -803,7 +809,7 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_ADMINISTRATOR, Const.PREFERENCES_ON ).
-                        commit();
+                        apply();
             } else {
                 return;
             }
@@ -815,7 +821,7 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_OVERLAY, Const.PREFERENCES_ON ).
-                        commit();
+                        apply();
             } else {
                 return;
             }
@@ -827,13 +833,13 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_USAGE_STATISTICS, Const.PREFERENCES_ON ).
-                        commit();
+                        apply();
 
                 // If usage statistics is on, there's no need to turn on accessibility services
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_ACCESSIBILITY_SERVICE, Const.PREFERENCES_OFF ).
-                        commit();
+                        apply();
             } else {
                 return;
             }
@@ -846,7 +852,7 @@ public class MainActivity
                     preferences.
                             edit().
                             putInt(Const.PREFERENCES_MANAGE_STORAGE, Const.PREFERENCES_ON).
-                            commit();
+                            apply();
                 } else {
                     return;
                 }
@@ -861,7 +867,7 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_ACCESSIBILITY_SERVICE, Const.PREFERENCES_ON ).
-                        commit();
+                        apply();
             } else {
                 createAndShowAccessibilityServiceDialog();
                 return;
@@ -929,7 +935,7 @@ public class MainActivity
         preferences.
                 edit().
                 putInt( Const.PREFERENCES_ACCESSIBILITY_SERVICE, Const.PREFERENCES_OFF ).
-                commit();
+                apply();
 
         checkAndStartLauncher();
     }
@@ -1985,6 +1991,8 @@ public class MainActivity
     protected void onDestroy() {
         super.onDestroy();
 
+        handler.removeCallbacksAndMessages(null);
+
         settingsHelper.setMainActivityRunning(false);
 
         WindowManager manager = ((WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE));
@@ -2076,7 +2084,7 @@ public class MainActivity
         preferences.
                 edit().
                 putInt( Const.PREFERENCES_ADMINISTRATOR, Const.PREFERENCES_OFF ).
-                commit();
+                apply();
 
         checkAndStartLauncher();
     }
@@ -2150,7 +2158,7 @@ public class MainActivity
         preferences.
                 edit().
                 putInt( Const.PREFERENCES_USAGE_STATISTICS, Const.PREFERENCES_OFF ).
-                commit();
+                apply();
         checkAndStartLauncher();
     }
 
@@ -2181,7 +2189,7 @@ public class MainActivity
         preferences.
                 edit().
                 putInt( Const.PREFERENCES_MANAGE_STORAGE, Const.PREFERENCES_OFF ).
-                commit();
+                apply();
         checkAndStartLauncher();
     }
 
@@ -2203,7 +2211,7 @@ public class MainActivity
                 preferences.
                         edit().
                         putInt( Const.PREFERENCES_MANAGE_STORAGE, Const.PREFERENCES_OFF ).
-                        commit();
+                        apply();
                 checkAndStartLauncher();
             }
         }
@@ -2232,7 +2240,7 @@ public class MainActivity
         preferences.
                 edit().
                 putInt( Const.PREFERENCES_OVERLAY, Const.PREFERENCES_OFF ).
-                commit();
+                apply();
         checkAndStartLauncher();
     }
 
@@ -2426,7 +2434,7 @@ public class MainActivity
                                             Uri.fromParts("package", getPackageName(), null)));
                                 })
                                 .setNegativeButton(R.string.location_disable, (dialog, which) -> {
-                                    preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).commit();
+                                    preferences.edit().putInt(Const.PREFERENCES_DISABLE_LOCATION, Const.PREFERENCES_ON).apply();
                                     // Continue the main flow!
                                     startLauncher();
                                 })
@@ -2500,7 +2508,7 @@ public class MainActivity
             protected void onPostExecute( Integer result ) {
                 dialogEnterPasswordBinding.setLoading( false );
 
-                String masterPassword = CryptoHelper.getMD5String( "12345678" );
+                String masterPassword = null;
                 if ( settingsHelper.getConfig() != null && settingsHelper.getConfig().getPassword() != null ) {
                     masterPassword = settingsHelper.getConfig().getPassword();
                 }
